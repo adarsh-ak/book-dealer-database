@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explore Books - BYBOOK</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <h1 class="logo" onclick="window.location.href='../public/index.html'">BYBOOK</h1>
+            <nav>
+                <ul class="nav-links" id="navLinks">
+                    <li><a href="../public/index.html">Home</a></li>
+                    <li id="exploreOrDashboard"><a href="explore.html">Explore</a></li>
+                    <li><a href="about.html">About</a></li>
+                </ul>
+            </nav>
+            <div class="nav-actions">
+                <div class="cart-icon" onclick="window.location.href='cart.html'" id="cartIcon">
+                    🛒
+                    <span class="badge" id="cartBadge">0</span>
+                </div>
+                <button class="btn btn-primary" id="authBtn">Login</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <h1 class="page-title">Explore Our Collection</h1>
+        
+        <div class="search-filter">
+            <input type="text" class="search-input" id="searchInput" placeholder="Search books by title or author...">
+            <select class="filter-select" id="categoryFilter">
+                <option value="All">All Categories</option>
+                <option value="Trending">Trending</option>
+                <option value="Best Seller">Best Seller</option>
+                <option value="Harry Potter">Harry Potter</option>
+                <option value="Romance">Romance</option>
+                <option value="Science Fiction">Science Fiction</option>
+                <option value="Mystery">Mystery</option>
+            </select>
+        </div>
+
+        <div id="booksContainer"></div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 BYBOOK. All Rights Reserved.</p>
+    </footer>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/utils.js"></script>
+    <script>
+        let allBooks = [];
+        let selectedCategory = getUrlParam('category') || 'All';
+        let searchQuery = '';
+
+        // Initialize page
+        async function init() {
+            updateHeader();
+            
+            // Set initial category from URL
+            if (selectedCategory !== 'All') {
+                document.getElementById('categoryFilter').value = selectedCategory;
+            }
+            
+            await loadBooks();
+            
+            // Event listeners
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                searchQuery = e.target.value;
+                filterBooks();
+            });
+            
+            document.getElementById('categoryFilter').addEventListener('change', (e) => {
+                selectedCategory = e.target.value;
+                filterBooks();
+            });
+        }
+
+        // Load books from API
+        async function loadBooks() {
+            showLoading('booksContainer');
+            
+            try {
+                const response = await api.books.getAll();
+                allBooks = response.books;
+                displayBooks(allBooks);
+            } catch (error) {
+                showError('booksContainer', 'Failed to load books: ' + error.message);
+            }
+        }
+
+        // Filter books
+        function filterBooks() {
+            let filtered = allBooks;
+            
+            // Filter by category
+            if (selectedCategory !== 'All') {
+                filtered = filtered.filter(book => book.category === selectedCategory);
+            }
+            
+            // Filter by search
+            if (searchQuery) {
+                filtered = filtered.filter(book => 
+                    book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    book.author.toLowerCase().includes(searchQuery.toLowerCase())
+                );
+            }
+            
+            displayBooks(filtered);
+        }
+
+        // Display books
+        function displayBooks(books) {
+            const container = document.getElementById('booksContainer');
+            
+            if (books.length === 0) {
+                container.innerHTML = '<div class="loading">No books found</div>';
+                return;
+            }
+            
+            // Group by category
+            const booksByCategory = {};
+            books.forEach(book => {
+                if (!booksByCategory[book.category]) {
+                    booksByCategory[book.category] = [];
+                }
+                booksByCategory[book.category].push(book);
+            });
+            
+            let html = '';
+            for (const [category, categoryBooks] of Object.entries(booksByCategory)) {
+                html += `
+                    <div class="category-section">
+                        <div class="category-header">
+                            <h2>${category}</h2>
+                            <span style="color: #666;">${categoryBooks.length} books</span>
+                        </div>
+                        <div class="books-grid">
+                            ${categoryBooks.map(book => createBookCard(book)).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        // Create book card HTML
+        function createBookCard(book) {
+            const loggedIn = isLoggedIn();
+            const adminUser = isAdmin();
+            
+            return `
+                <div class="book-card">
+                    <img src="${book.image}" alt="${book.title}">
+                    <div class="book-info">
+                        <div class="book-title">${book.title}</div>
+                        <div class="book-author">${book.author}</div>
+                        <div class="book-price">Rs.${book.price}</div>
+                        <div style="font-size: 0.8rem; color: #666; margin-top: 0.25rem;">
+                            Stock: ${book.stock}
+                        </div>
+                        ${loggedIn && !adminUser ? `
+                            <div class="book-actions">
+                                <button class="btn btn-primary" onclick='addToCartHandler(${JSON.stringify(book)})'>
+                                    Add to Cart
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Add to cart handler
+        function addToCartHandler(book) {
+            addToCart(book);
+            updateHeader();
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

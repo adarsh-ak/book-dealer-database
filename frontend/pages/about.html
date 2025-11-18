@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us - BYBOOK</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <h1 class="logo" onclick="window.location.href='../public/index.html'">BYBOOK</h1>
+            <nav>
+                <ul class="nav-links" id="navLinks">
+                    <li><a href="../public/index.html">Home</a></li>
+                    <li id="exploreOrDashboard"><a href="explore.html">Explore</a></li>
+                    <li><a href="about.html">About</a></li>
+                </ul>
+            </nav>
+            <div class="nav-actions">
+                <div class="cart-icon" onclick="window.location.href='cart.html'" id="cartIcon">
+                    🛒
+                    <span class="badge" id="cartBadge">0</span>
+                </div>
+                <button class="btn btn-primary" id="authBtn">Login</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <h1 class="page-title">About BYBOOK</h1>
+        <div style="max-width: 800px; margin: 0 auto; background: white; padding: 3rem; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+            <p style="font-size: 1.1rem; line-height: 1.8; margin-bottom: 1.5rem;">
+                Welcome to BYBOOK, your premier destination for discovering and purchasing books from all genres. 
+                Founded with a passion for literature and a commitment to connecting readers with their next favorite book.
+            </p>
+            <p style="font-size: 1.1rem; line-height: 1.8; margin-bottom: 1.5rem;">
+                Our mission is to make quality literature accessible to everyone. We carefully curate our collection 
+                to include timeless classics, contemporary bestsellers, and hidden gems waiting to be discovered.
+            </p>
+            <p style="font-size: 1.1rem; line-height: 1.8; margin-bottom: 1.5rem;">
+                Whether you're an avid reader or just beginning your literary journey, BYBOOK offers a seamless 
+                shopping experience with personalized recommendations, competitive prices, and fast delivery.
+            </p>
+            <div style="text-align: center; margin-top: 2rem;">
+                <button class="btn btn-primary" onclick="window.location.href='explore.html'">Start Exploring</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 BYBOOK. All Rights Reserved.</p>
+    </footer>
+
+    <script src="../js/auth.js"></script>
+    <script src="../js/utils.js"></script>
+    <script>
+        updateHeader();
+    </script>
+</body>
+</html>

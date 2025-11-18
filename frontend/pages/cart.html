@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopping Cart - BYBOOK</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <h1 class="logo" onclick="window.location.href='../public/index.html'">BYBOOK</h1>
+            <nav>
+                <ul class="nav-links" id="navLinks">
+                    <li><a href="../public/index.html">Home</a></li>
+                    <li id="exploreOrDashboard"><a href="explore.html">Explore</a></li>
+                    <li><a href="about.html">About</a></li>
+                </ul>
+            </nav>
+            <div class="nav-actions">
+                <div class="cart-icon" onclick="window.location.href='cart.html'" id="cartIcon">
+                    🛒
+                    <span class="badge" id="cartBadge">0</span>
+                </div>
+                <button class="btn btn-primary" id="authBtn">Login</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <h1 class="page-title">Shopping Cart</h1>
+        
+        <div id="cartContainer"></div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 BYBOOK. All Rights Reserved.</p>
+    </footer>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/utils.js"></script>
+    <script>
+        function init() {
+            protectRoute();
+            updateHeader();
+            displayCart();
+        }
+
+        function displayCart() {
+            const cart = getCart();
+            const container = document.getElementById('cartContainer');
+            
+            if (cart.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 4rem; background: white; border-radius: 10px;">
+                        <h3 style="color: #666; margin-bottom: 1rem;">Your cart is empty</h3>
+                        <button class="btn btn-primary" onclick="window.location.href='explore.html'">Start Shopping</button>
+                    </div>
+                `;
+                return;
+            }
+
+            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const shipping = 5.00;
+            
+            let html = `
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
+                    <div>
+                        ${cart.map(item => `
+                            <div class="cart-item">
+                                <img src="${item.image}" alt="${item.title}">
+                                <div class="cart-item-info">
+                                    <h3 style="color: var(--primary); margin-bottom: 0.25rem;">${item.title}</h3>
+                                    <p style="color: #666; font-size: 0.9rem;">${item.author}</p>
+                                    <p style="color: var(--secondary); font-weight: bold; margin-top: 0.5rem;">${formatCurrency(item.price)}</p>
+                                    <div style="display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem;">
+                                        <button class="btn btn-secondary" onclick="updateQuantityHandler('${item._id}', -1)" style="padding: 0.25rem 0.75rem;">-</button>
+                                        <span style="font-weight: bold;">${item.quantity}</span>
+                                        <button class="btn btn-secondary" onclick="updateQuantityHandler('${item._id}', 1)" style="padding: 0.25rem 0.75rem;">+</button>
+                                    </div>
+                                </div>
+                                <button class="btn btn-warning" onclick="removeFromCartHandler('${item._id}')">Remove</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="admin-card" style="height: fit-content;">
+                        <h2 style="margin-bottom: 1rem;">Order Summary</h2>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span>Subtotal:</span>
+                            <span>${formatCurrency(total)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span>Shipping:</span>
+                            <span>${formatCurrency(shipping)}</span>
+                        </div>
+                        <hr style="margin: 1rem 0;">
+                        <div style="display: flex; justify-content: space-between; font-size: 1.2rem; font-weight: bold; color: var(--primary);">
+                            <span>Total:</span>
+                            <span>${formatCurrency(total + shipping)}</span>
+                        </div>
+                        <button class="btn btn-success" style="width: 100%; margin-top: 1.5rem; padding: 1rem;" onclick="checkout()">
+                            Proceed to Checkout
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+        }
+
+        function updateQuantityHandler(bookId, change) {
+            updateQuantity(bookId, change);
+            displayCart();
+        }
+
+        function removeFromCartHandler(bookId) {
+            if (confirm('Remove this item from cart?')) {
+                removeFromCart(bookId);
+                displayCart();
+            }
+        }
+
+        async function checkout() {
+            const cart = getCart();
+            
+            if (cart.length === 0) {
+                alert('Your cart is empty');
+                return;
+            }
+
+            try {
+                const items = cart.map(item => ({
+                    book: item._id,
+                    quantity: item.quantity,
+                    price: item.price
+                }));
+
+                const response = await api.orders.create({
+                    items,
+                    shippingAddress: {
+                        address: 'Default Address',
+                        city: 'City',
+                        postalCode: '12345',
+                        country: 'Country'
+                    }
+                });
+
+                if (response.success) {
+                    alert('Order placed successfully!');
+                    clearCart();
+                    window.location.href = 'explore.html';
+                }
+            } catch (error) {
+                alert('Checkout failed: ' + error.message);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

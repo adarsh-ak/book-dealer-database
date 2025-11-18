@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - BYBOOK</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <h1 class="logo" onclick="window.location.href='../public/index.html'">BYBOOK</h1>
+            <nav>
+                <ul class="nav-links" id="navLinks">
+                    <li><a href="../public/index.html">Home</a></li>
+                    <li><a href="admin.html">Dashboard</a></li>
+                    <li><a href="explore.html">View Store</a></li>
+                </ul>
+            </nav>
+            <div class="nav-actions">
+                <button class="btn btn-primary" onclick="window.location.href='account.html'">Account</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="admin-container">
+        <div class="admin-content" style="grid-column: 1 / -1;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h1 style="color: var(--primary);">Dashboard</h1>
+                <button class="btn btn-success" onclick="openAddBookModal()">+ Add New Book</button>
+            </div>
+            
+            <div class="stats-grid" id="statsGrid">
+                <!-- Stats -->
+            </div>
+
+            <div class="admin-card">
+                <h2>Book Inventory</h2>
+                <div style="overflow-x: auto;">
+                    <table id="booksTable">
+                        <!-- Table -->
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Book -->
+    <div class="modal" id="bookModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add New Book</h2>
+                <span class="close-modal" onclick="closeModal()">&times;</span>
+            </div>
+            <form id="bookForm">
+                <div class="form-group">
+                    <label>Book Title</label>
+                    <input type="text" id="bookTitle" required>
+                </div>
+                <div class="form-group">
+                    <label>Author</label>
+                    <input type="text" id="bookAuthor" required>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="bookCategory" class="filter-select" style="width: 100%;" required>
+                        <option value="Trending">Trending</option>
+                        <option value="Best Seller">Best Seller</option>
+                        <option value="Harry Potter">Harry Potter</option>
+                        <option value="Romance">Romance</option>
+                        <option value="Science Fiction">Science Fiction</option>
+                        <option value="Mystery">Mystery</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Price (Rs.)</label>
+                    <input type="number" id="bookPrice" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Stock Quantity</label>
+                    <input type="number" id="bookStock" required>
+                </div>
+                <div class="form-group">
+                    <label>Image URL</label>
+                    <input type="url" id="bookImage" required>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" id="bookDescription">
+                </div>
+                <input type="hidden" id="bookId">
+                <button type="submit" class="btn btn-success" style="width: 100%;">Save Book</button>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 BYBOOK. All Rights Reserved.</p>
+    </footer>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/utils.js"></script>
+    <script>
+        let editingBookId = null;
+
+        async function init() {
+            protectAdminRoute();
+            await loadStats();
+            await loadBooks();
+        }
+
+        async function loadStats() {
+            try {
+                const response = await api.books.getStats();
+                const stats = response.stats;
+                
+                document.getElementById('statsGrid').innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.totalBooks}</div>
+                        <div class="stat-label">Total Books</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">Rs. ${stats.totalValue}</div>
+                        <div class="stat-label">Total Value</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.lowStock}</div>
+                        <div class="stat-label">Low Stock Items</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.totalCategories}</div>
+                        <div class="stat-label">Categories</div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        async function loadBooks() {
+            try {
+                const response = await api.books.getAll();
+                const books = response.books;
+                
+                let html = `
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${books.map(book => `
+                            <tr>
+                                <td>${book.title}</td>
+                                <td>${book.author}</td>
+                                <td>${book.category}</td>
+                                <td>${formatCurrency(book.price)}</td>
+                                <td style="color: ${book.stock < 50 ? 'var(--secondary)' : 'var(--success)'}">
+                                    ${book.stock}
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn btn-accent" onclick="editBook('${book._id}')">Edit</button>
+                                        <button class="btn btn-warning" onclick="deleteBook('${book._id}')">Delete</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                `;
+                
+                document.getElementById('booksTable').innerHTML = html;
+            } catch (error) {
+                alert('Failed to load books: ' + error.message);
+            }
+        }
+
+        function openAddBookModal() {
+            editingBookId = null;
+            document.getElementById('modalTitle').textContent = 'Add New Book';
+            document.getElementById('bookForm').reset();
+            document.getElementById('bookModal').classList.add('active');
+        }
+
+        async function editBook(bookId) {
+            try {
+                const response = await api.books.getOne(bookId);
+                const book = response.book;
+                
+                editingBookId = bookId;
+                document.getElementById('modalTitle').textContent = 'Edit Book';
+                document.getElementById('bookTitle').value = book.title;
+                document.getElementById('bookAuthor').value = book.author;
+                document.getElementById('bookCategory').value = book.category;
+                document.getElementById('bookPrice').value = book.price;
+                document.getElementById('bookStock').value = book.stock;
+                document.getElementById('bookImage').value = book.image;
+                document.getElementById('bookDescription').value = book.description || '';
+                
+                document.getElementById('bookModal').classList.add('active');
+            } catch (error) {
+                alert('Failed to load book: ' + error.message);
+            }
+        }
+
+        async function deleteBook(bookId) {
+            if (!confirm('Are you sure you want to delete this book?')) return;
+            
+            try {
+                await api.books.delete(bookId);
+                alert('Book deleted successfully!');
+                await loadBooks();
+                await loadStats();
+            } catch (error) {
+                alert('Failed to delete book: ' + error.message);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('bookModal').classList.remove('active');
+            document.getElementById('bookForm').reset();
+            editingBookId = null;
+        }
+
+        document.getElementById('bookForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const bookData = {
+                title: document.getElementById('bookTitle').value,
+                author: document.getElementById('bookAuthor').value,
+                category: document.getElementById('bookCategory').value,
+                price: parseFloat(document.getElementById('bookPrice').value),
+                stock: parseInt(document.getElementById('bookStock').value),
+                image: document.getElementById('bookImage').value,
+                description: document.getElementById('bookDescription').value
+            };
+
+            try {
+                if (editingBookId) {
+                    await api.books.update(editingBookId, bookData);
+                    alert('Book updated successfully!');
+                } else {
+                    await api.books.create(bookData);
+                    alert('Book added successfully!');
+                }
+                
+                closeModal();
+                await loadBooks();
+                await loadStats();
+            } catch (error) {
+                alert('Failed to save book: ' + error.message);
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
